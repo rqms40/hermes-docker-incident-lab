@@ -335,3 +335,157 @@ git grep -nE 'sk-[A-Za-z0-9]|OPENROUTER_API_KEY=[^r]|TELEGRAM_BOT_TOKEN=[^r]' --
 ```
 
 The final secret scan must return no real credentials. `.env`, `.hermes/`, and `reports/` are intentionally ignored.
+
+## Automation recipes: practical next projects
+
+After completing the incident-response lab, use the same pattern for useful automations: **collect → assess → report → approve → act → verify**. Start with one narrow job, give it only the toolsets it needs, and keep all public, financial, destructive, or production-changing actions behind an explicit owner approval.
+
+### Before creating any scheduled job
+
+Hermes cron jobs run in fresh sessions. Their prompts must name the sources, project path, output format, and quiet-case behavior; they do not inherit the details of the conversation that created them. Confirm that Telegram works first, then inspect the scheduler:
+
+```bash
+hermes cron status
+hermes cron list
+```
+
+For jobs that need terminal, web, or file access, run `hermes tools`, select the **cron** platform, and enable only the required toolsets. Do not enable terminal access for a web-only research digest. Every example below delivers to your owner-allowlisted Telegram bot.
+
+After adding a job, test it before relying on its schedule:
+
+```bash
+hermes cron list
+hermes cron run "JOB_NAME"
+```
+
+`run` triggers the job on the next scheduler tick. Review the Telegram result, then use `hermes cron pause "JOB_NAME"`, `hermes cron resume "JOB_NAME"`, or `hermes cron remove "JOB_NAME"` to manage its lifecycle. If you change to a different OpenRouter model later, review scheduled jobs too: Hermes pins jobs to the selected provider/model and fails closed rather than silently moving unattended work to a different model or cost.
+
+### 1. Weekly research digest — web research, links, and a concise briefing
+
+**Use case:** receive a useful Monday briefing about a narrow topic without manually searching every source.
+
+**What Hermes does:** searches the specified sources, filters for meaningful changes, writes a short linked summary, and sends it to Telegram. It does not publish anything.
+
+```bash
+hermes cron create "0 9 * * 1" \
+  "Research the past week's developments in AI agents, Docker, and self-hosted operations. Use reputable primary sources where possible. Return at most five items; for each include a one-sentence why-it-matters note and a source link. Keep the complete briefing below 500 words. Do not post, email, buy, or change anything." \
+  --name "weekly-ai-operations-digest" \
+  --deliver telegram
+```
+
+**Make it yours:** replace the three topics with a business domain, a technology stack, competitor updates, grant opportunities, or a selected set of official documentation sites. Keep source requirements and the maximum length in the prompt so the report stays useful.
+
+### 2. Docker website watchdog — immediate alert, zero model tokens, no auto-repair
+
+**Use case:** be told when the lab website is down, while preserving the seminar rule that no service is recovered automatically.
+
+**What Hermes does:** runs a deterministic shell check every five minutes. A healthy check prints nothing, so Telegram stays quiet. A failed check collects lab evidence and sends an alert. The LLM is not invoked for this type of precise threshold check.
+
+Create the watchdog script once. Change `LAB_DIR` if you cloned the repository elsewhere:
+
+```bash
+mkdir -p ~/.hermes/scripts
+cat > ~/.hermes/scripts/demo-web-watchdog.sh <<'EOF'
+#!/usr/bin/env bash
+set -u
+
+LAB_DIR="$HOME/hermes-docker-incident-lab"
+
+if "$LAB_DIR/scripts/check-demo.sh" >/dev/null 2>&1; then
+  exit 0
+fi
+
+"$LAB_DIR/scripts/collect-incident.sh" >/dev/null 2>&1 || true
+printf 'ALERT: demo-web health check failed. Hermes collected local incident evidence; investigate and approve recovery manually.\n'
+EOF
+chmod 700 ~/.hermes/scripts/demo-web-watchdog.sh
+
+hermes cron create "every 5m" \
+  --no-agent \
+  --script demo-web-watchdog.sh \
+  --deliver telegram \
+  --name "demo-web-watchdog"
+```
+
+**Why this is best practice:** use script-only jobs for checks with an exact, deterministic answer. Reserve the model for explanation and investigation. This job intentionally does **not** call `recover-demo.sh`.
+
+### 3. GitHub and CI morning review — report changes, never merge
+
+**Use case:** receive an owner-only list of new pull requests, failed checks, and issues that need attention.
+
+**Setup requirements:** install and authenticate GitHub CLI (`gh auth status`) on the server; set the absolute repository path in `--workdir`; enable only the cron terminal/file toolsets required for the repository.
+
+```bash
+REPO_DIR="$HOME/projects/your-repository"
+
+hermes cron create "0 9 * * 1-5" \
+  "In this repository, inspect open pull requests, failed or pending CI checks, and issues created in the last 24 hours using GitHub CLI. Send a concise owner briefing with links and recommended next actions. Do not modify files, comment on GitHub, merge, push, close issues, or change labels. If there are no changes requiring attention, reply with only [SILENT]." \
+  --workdir "$REPO_DIR" \
+  --name "github-morning-review" \
+  --deliver telegram
+```
+
+**Safe expansion:** after the report is useful, let Hermes prepare a local patch or a draft issue body. Keep the actual push, merge, issue write, and release approval with the owner.
+
+### 4. Source-backed content pipeline — research and drafts, never unattended publishing
+
+**Use case:** prepare a weekly article, newsletter, documentation update, or social-media draft from researched sources.
+
+**What Hermes does:** finds sources, writes a draft to a local folder, and sends a compact Telegram preview. It never posts or sends the draft on its own.
+
+```bash
+CONTENT_DIR="$HOME/hermes-content-drafts"
+mkdir -p "$CONTENT_DIR"
+
+hermes cron create "0 10 * * 5" \
+  "Research one useful topic about Docker operations or AI-agent safety from at least two independent, reputable sources. Save a 500-700 word Markdown draft with source links in the current working directory. Send a short Telegram preview and the local filename. This is a draft only: do not publish, post, email, upload, use social-media credentials, or claim facts that are not supported by the sources." \
+  --workdir "$CONTENT_DIR" \
+  --name "weekly-content-draft" \
+  --deliver telegram
+```
+
+**Approval boundary:** review the sources and draft first. If you later connect a publishing service, create a separate, narrowly scoped approval command rather than giving this scheduled job publishing permission.
+
+### 5. Backup verification briefing — verify restoration readiness, not just job success
+
+**Use case:** turn an existing backup system's status into a concise, actionable owner report.
+
+**How to set it up:** first identify the read-only command that your backup system already provides (for example, a snapshot listing or verification command). Run it manually and understand its output. Then create a job with that exact command and a clear failure rule:
+
+```bash
+BACKUP_DIR="$HOME/backup-operations"
+
+hermes cron create "0 8 * * 1" \
+  "In this directory, run only the documented read-only backup status and verification commands. Report the newest successful backup time, repository/storage reachability, verification result, and any warning that needs owner action. Do not delete backups, prune retention, rotate credentials, restore data, or change backup configuration. If all checks are healthy, keep the report below 120 words." \
+  --workdir "$BACKUP_DIR" \
+  --name "weekly-backup-verification" \
+  --deliver telegram
+```
+
+**Best practice:** a backup job that merely says “completed” is not enough. Periodically test a small, non-production restore in an isolated location, with an owner present.
+
+### 6. Project knowledge and task recap — private notes for the next work session
+
+**Use case:** summarize completed work, unresolved decisions, and next actions into a local Markdown note after a scheduled review.
+
+```bash
+NOTES_DIR="$HOME/hermes-project-notes"
+mkdir -p "$NOTES_DIR"
+
+hermes cron create "0 17 * * 1-5" \
+  "Review only the files and Git status in the current working directory. Create a dated Markdown work recap with completed changes, unresolved questions, risks, and the next three concrete actions. Send a Telegram summary of no more than 150 words. Do not commit, push, modify application code, send messages to third parties, or include credentials in the note." \
+  --workdir "$NOTES_DIR" \
+  --name "weekday-project-recap" \
+  --deliver telegram
+```
+
+### Choosing the right automation type
+
+| Need | Best pattern | Why |
+| --- | --- | --- |
+| “Tell me only if a measurable threshold fails.” | Script-only cron job | Deterministic, inexpensive, and silent when healthy. |
+| “Research, compare, prioritize, or explain.” | LLM-backed cron job with web/file tools | Requires judgement; keep the prompt self-contained and source-linked. |
+| “A push, merge, publish, restart, payment, or delete.” | Report first, then an explicit owner-approved command | Side effects need a human decision and a narrow allowlisted action. |
+| “Something happened in GitHub or another external system.” | Webhook or an external trigger, then a narrow Hermes workflow | Event-driven work reacts to real changes instead of polling blindly. |
+
+For the full scheduling reference, including toolset scoping, script-only jobs, delivery controls, and testing commands, see the official [Scheduled Tasks](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) and [Automation Guide](https://hermes-agent.nousresearch.com/docs/guides/automate-with-cron).
