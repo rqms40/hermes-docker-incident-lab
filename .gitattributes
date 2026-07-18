@@ -1,0 +1,5 @@
+# The seminar scripts execute on Linux hosts and must retain Unix line endings.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
