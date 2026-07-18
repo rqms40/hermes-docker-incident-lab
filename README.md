@@ -24,6 +24,21 @@ This is a **safe attack simulation**, not a real exploit. It sends `SIGKILL` onl
 
 There is no dashboard, Caddy, reverse proxy, VM provisioning, or automatic repair in this kit. Docker publishes the website only on the specific IPv4 address configured in `.env`.
 
+## Other practical Hermes applications
+
+This lab demonstrates a useful pattern: **observe first, report evidence, and require human approval before an action changes a system**. The same pattern can support other practical workflows once their tools, files, and credentials are deliberately scoped.
+
+| Application | What Hermes can do | Safe starting point |
+| --- | --- | --- |
+| Docker and service incident assistant | Check an allowlisted service, collect status and recent logs, then send a concise Telegram incident report. | Read-only diagnostics; use one dedicated recovery script and require an explicit approval phrase. |
+| Daily operations briefing | Gather selected system checks, calendar items, project notes, or trusted sources and send a short owner briefing. | Send only useful summaries; use `[SILENT]` when no attention is needed. |
+| Repository and CI helper | Inspect an allowlisted Git repository, open issues, and CI results; summarize findings or prepare a proposed change. | Review and draft first; a human reviews diffs and performs merge or push actions. |
+| Research and content workflow | Monitor a defined set of sources, organize notes, and prepare a source-linked draft for a post, report, or newsletter. | Keep publication separate from drafting; require approval before anything is sent or published. |
+| Personal knowledge capture | Turn Telegram text or voice notes into organized local Markdown notes and retrieve relevant prior context. | Keep notes in a private, access-controlled workspace; avoid placing credentials or sensitive personal data in prompts. |
+| Home or office automation | Read state from specifically connected devices and prepare a requested action, such as an alert or a scheduled routine. | Use an allowlist of devices and commands; require confirmation for actions with physical or financial impact. |
+
+Do not give an agent blanket shell, network, repository, or messaging access merely for convenience. Start with one narrow workflow, grant only the tools it needs, keep an owner allowlist for Telegram, and add approval gates for every external or destructive action.
+
 ## 0. Host requirements
 
 Use a Linux shell on Ubuntu 22.04/24.04, Debian, a VirtualBox Linux VM, a local Linux machine, or a Linux VPS. Select an IPv4 address you can reach from your browser. Prefer a private LAN, VPN, host-only, or internal VPS address. If you intentionally use a public VPS address, restrict TCP port `8080` to your allowed source IPs with the provider firewall.
