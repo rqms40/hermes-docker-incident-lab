@@ -24,6 +24,44 @@ This is a **safe attack simulation**, not a real exploit. It sends `SIGKILL` onl
 
 There is no dashboard, Caddy, reverse proxy, VM provisioning, or automatic repair in this kit. Docker publishes the website only on the specific IPv4 address configured in `.env`.
 
+## Core Hermes concepts: identity, user, project, and memory
+
+Hermes receives different kinds of context for different reasons. Keeping them separate makes an agent easier to understand, safer to operate, and less likely to follow an old project rule in the wrong place.
+
+```text
+┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
+│  SOUL.md             │  │  USER.md             │  │  AGENTS.md           │
+│  Who Hermes is       │  │  Who Hermes serves   │  │  How this project    │
+│  Global identity     │  │  User preferences    │  │  must be operated    │
+└──────────────────────┘  └──────────────────────┘  └──────────────────────┘
+           │                         │                         │
+           └───────────┬─────────────┴─────────────┬───────────┘
+                       ▼                           ▼
+                  Hermes Agent                This lab only
+```
+
+| File or concept | What it means | Correct location in this lab | What belongs there | What does **not** belong there |
+| --- | --- | --- | --- | --- |
+| `SOUL.md` — **identity** | Hermes' durable identity, tone, and communication defaults. This is the official file behind the “IDENTITY.md / Who it is” idea in the visual. | `~/.hermes/SOUL.md` | “Be concise, report uncertainty, inspect before acting.” | Temporary incident details, repository paths, API keys, or Telegram tokens. |
+| `USER.md` — **user profile** | A small, persistent profile of the person Hermes serves: preferences, role, timezone, and reporting style. | `~/.hermes/memories/USER.md` | “The owner prefers concise incident reports with evidence first.” | Authentication decisions, secrets, passwords, or a list of commands Hermes may run. |
+| `AGENTS.md` — **project instructions** | The operational manual for one repository: boundaries, architecture, scripts, commands, and safety rules. | `./AGENTS.md` in this repository | “Only inspect `demo-web`; recovery must use `scripts/recover-demo.sh` after approval.” | A global persona or rules that should apply to every unrelated project. |
+| `MEMORY.md` — **learned facts** | Bounded agent memory for durable facts about the environment and workflow; Hermes manages it between sessions. | `~/.hermes/memories/MEMORY.md` | “The demo site uses Docker Compose and is checked through the server-IP URL.” | Large logs, one-time errors, secrets, or anything that should expire quickly. |
+
+### The important distinction: identity is not authorization
+
+`SOUL.md` can tell Hermes to be careful, but it does not grant access. Authorization comes from the configuration around the agent: Telegram owner allowlists, the available tools, the terminal working directory, Docker permissions, and manual approval settings. This lab uses all of those controls together.
+
+### Why there is no `IDENTITY.md` template
+
+The visual's **IDENTITY.md** label is a useful way to teach the idea of “who the agent is.” Hermes’ documented auto-loaded identity file is `SOUL.md`, stored in `HERMES_HOME` (normally `~/.hermes/SOUL.md`). Creating a separate `IDENTITY.md` would not make Hermes load it automatically. Put identity and tone in `SOUL.md`; put lab-specific operating rules in `AGENTS.md`.
+
+### A simple rule for deciding where a sentence belongs
+
+- “How should Hermes sound and reason everywhere?” → `SOUL.md`
+- “What does this owner prefer?” → `USER.md`
+- “What may Hermes do in this repository?” → `AGENTS.md`
+- “What durable fact did Hermes learn?” → `MEMORY.md`
+
 ## Other practical Hermes applications
 
 This lab demonstrates a useful pattern: **observe first, report evidence, and require human approval before an action changes a system**. The same pattern can support other practical workflows once their tools, files, and credentials are deliberately scoped.
