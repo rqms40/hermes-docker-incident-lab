@@ -120,7 +120,7 @@ For a long-lived production system, follow Docker's distribution-specific Engine
 Clone or copy this repository onto the Linux machine, then enter it:
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL> hermes-docker-incident-lab
+git clone https://github.com/rqms40/hermes-docker-incident-lab.git
 cd hermes-docker-incident-lab
 ```
 
