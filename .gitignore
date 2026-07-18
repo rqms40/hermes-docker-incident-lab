@@ -1,0 +1,4 @@
+.env
+.hermes/
+reports/
+__pycache__/

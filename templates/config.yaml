@@ -1,0 +1,7 @@
+approvals:
+  mode: manual
+  cron_mode: deny
+
+terminal:
+  backend: local
+  cwd: .

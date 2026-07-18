@@ -1,0 +1,14 @@
+services:
+  demo-web:
+    build:
+      context: ./app
+    container_name: demo-web
+    ports:
+      - "${DEMO_BIND_IP:?Set DEMO_BIND_IP in .env}:8080:80"
+    restart: "no"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost/ >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
