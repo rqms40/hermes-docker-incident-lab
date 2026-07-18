@@ -1,31 +1,32 @@
 # Hermes Docker Incident-Response Lab
 
-A portable Hermes Agent seminar lab. Students run a tiny Docker website on their server IP, trigger a controlled attack simulation that force-terminates it, ask Hermes on Telegram to investigate, and explicitly approve its recovery.
+A portable Hermes Agent seminar lab. You will run a tiny Docker website on your server IP, trigger a controlled attack simulation that force-terminates it, ask Hermes on Telegram to investigate, and explicitly approve its recovery.
 
-This is a **safe attack simulation**, not a real exploit. It sends `SIGKILL` only to the lab's `demo-web` container so students can investigate an abrupt service failure. It never targets another host, scans a network, or performs unattended repair.
+This is a **safe attack simulation**, not a real exploit. It sends `SIGKILL` only to the lab's `demo-web` container so you can investigate an abrupt service failure. It never targets another host, scans a network, or performs unattended repair.
 
-## What students build
+## What you will build
 
 ```text
-Telegram owner
-     │ asks Hermes to investigate
-     ▼
-Hermes Agent ── reads ──> Docker status + inspect + last 100 logs
-     │                              │
-     │ incident report               ▼
-     └────────────────────── demo-web on SERVER_IP:8080
-                                      │
-                              explicit owner approval
-                                      │
-                                      ▼
-                              scoped recovery script
+┌────────────────────────────────────────────────────────────────┐
+│ You: Telegram owner                                            │
+│   │ ask Hermes to investigate                                  │
+│   ▼                                                            │
+│ Hermes Agent                                                   │
+│   │ reads Docker status, inspect data, and the last 100 logs   │
+│   │ writes an incident report                                  │
+│   ▼                                                            │
+│ demo-web at http://SERVER_IP:8080                              │
+│   │ requires your explicit approval                            │
+│   ▼                                                            │
+│ Scoped recovery script verifies the server-IP URL              │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 There is no dashboard, Caddy, reverse proxy, VM provisioning, or automatic repair in this kit. Docker publishes the website only on the specific IPv4 address configured in `.env`.
 
 ## 0. Host requirements
 
-Use a Linux shell on Ubuntu 22.04/24.04, Debian, a VirtualBox Linux VM, a local Linux machine, or a Linux VPS. Select an IPv4 address that students can reach from their browser. Prefer a private LAN, VPN, host-only, or internal VPS address. If you intentionally use a public VPS address, restrict TCP port `8080` to the seminar participants' source IPs with the provider firewall.
+Use a Linux shell on Ubuntu 22.04/24.04, Debian, a VirtualBox Linux VM, a local Linux machine, or a Linux VPS. Select an IPv4 address you can reach from your browser. Prefer a private LAN, VPN, host-only, or internal VPS address. If you intentionally use a public VPS address, restrict TCP port `8080` to your allowed source IPs with the provider firewall.
 
 ### Hermes CLI prerequisites
 
